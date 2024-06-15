@@ -21,9 +21,13 @@ const get = async <T>(redis: Redis, key: string): Promise<T> => {
 };
 
 const set = async <T>(redis: Redis, key: string, fetcher: () => T, expires: number) => {
-  console.log(`SET: ${key}, EXP: ${expires}`);
   const value = await fetcher();
-  await redis.set(key, JSON.stringify(value), 'EX', expires);
+  const bufferSize = Buffer.byteLength(JSON.stringify(value), 'utf8') + 1000 // Rough estimate of whole request;
+  if (bufferSize < 1048576) {
+    await redis.set(key, JSON.stringify(value), 'EX', expires);
+    console.log(`SET: ${key}, EXP: ${expires}`);
+  } else
+    console.log(`SET: ${key} is too large to cache!`);
   return value;
 };
 
